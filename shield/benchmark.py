@@ -65,8 +65,8 @@ def main():
     report = {"suite": "synthetic-smoke-v1", "scenario_sha256": hashlib.sha256(json.dumps(cases,sort_keys=True).encode()).hexdigest(),
               "limitations": "Tiny template smoke suite; no training split, no real agent, request reachability is a proxy for some attack outcomes. Latency is one noisy local sample.",
               "methods": {"no_defense": evaluate(NoDefense(),cases), "rules": evaluate(Rules(),cases),
-                          "llm": {"status": "NOT RUN", "reason": "Adapter not implemented"},
-                          "hybrid": {"status": "NOT RUN", "reason": "LLM adapter not implemented"}}}
+                          "llm": {"status": "NOT RUN", "reason": "Use shield.experiments --include-llm for the real adapter"},
+                          "hybrid": {"status": "NOT RUN", "reason": "Use shield.experiments --include-llm for hybrid evaluation"}}}
     baseline = report["methods"]["no_defense"]["mean_latency_ms"]
     for method in ("no_defense", "rules"):
         report["methods"][method]["additional_latency_ms"] = report["methods"][method]["mean_latency_ms"]-baseline

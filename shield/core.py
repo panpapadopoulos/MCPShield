@@ -1,4 +1,5 @@
 """Sandbox-only request and response enforcement. No filesystem or shell execution."""
+from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
 import json
@@ -28,7 +29,7 @@ class Rules:
         patterns = [
             ("prompt_injection", r"ignore (all |previous |prior )*instructions|system prompt|override security"),
             ("tool_poisoning", r"before using this tool|secretly send|hide this from"),
-            ("command_injection", r";|\$\(|\x60|\|\||&&|drop\s+table"),
+            ("command_injection", r";\s*(?:drop|rm|curl|sh|bash|powershell)\b|\$\(|\x60|\|\||&&|drop\s+table"),
             ("malicious_response", r"exfiltrate|send credentials|stolen_secret"),
         ]
         for category, pattern in patterns:
@@ -53,24 +54,56 @@ TOOLS = {
 }
 
 class Gateway:
-    def __init__(self, detector):
+    def __init__(self, detector, executor=None):
         self.detector = detector
+        self.executor = executor or (lambda tool, request: TOOLS[tool](request))
+
+    def transaction(self, tool, request, response_transform=None):
+        """Yield immutable phase checkpoints; resume warnings only with explicit True.
+
+        The generator retains the exact response and executor state across approval.
+        Tool execution is never replayed when approving a response.
+        """
+        request = deepcopy(request)
+        events = []
+        executed = False
+        response = None
+        for phase in ("request", "response"):
+            payload = request if phase == "request" else response
+            try:
+                verdict = self.detector.inspect(tool, payload, phase)
+                if not isinstance(verdict, Verdict) or not isinstance(verdict.decision, Decision):
+                    raise ValueError("Invalid detector output")
+            except Exception:
+                verdict = Verdict(Decision.BLOCKED, "detector_error", "Classification unavailable; execution denied")
+            event = {"phase": phase, "decision": verdict.decision.value,
+                     "category": verdict.category, "explanation": verdict.explanation}
+            events.append(event)
+            approved = yield {**event, "tool": tool, "payload": deepcopy(payload)}
+            if verdict.decision == Decision.BLOCKED or (verdict.decision == Decision.WARNING and approved is not True):
+                return {"executed": executed, "delivered": False, "response": None, "events": events}
+            if phase == "request":
+                if tool not in TOOLS or not isinstance(request, dict):
+                    return {"executed": False, "delivered": False, "response": None, "events": events, "error": "Invalid simulated call"}
+                executed = True
+                try:
+                    response = self.executor(tool, request)
+                    if response_transform:
+                        response = response_transform(response)
+                    response = deepcopy(response)
+                except Exception:
+                    return {"executed": True, "delivered": False, "response": None, "events": events, "error": "Simulated tool failed"}
+        return {"executed": True, "delivered": True, "response": response, "events": events}
 
     def run(self, tool, request, response_transform=None, approve=None):
-        events = []
-        def permitted(payload, phase):
-            verdict = self.detector.inspect(tool, payload, phase)
-            events.append({"phase": phase, "decision": verdict.decision.value,
-                           "category": verdict.category, "explanation": verdict.explanation})
-            return verdict.decision == Decision.ALLOWED or (
-                verdict.decision == Decision.WARNING and approve is not None and approve(tool, payload, phase, verdict) is True)
-        if not permitted(request, "request"):
-            return {"executed": False, "delivered": False, "response": None, "events": events}
-        if tool not in TOOLS or not isinstance(request, dict):
-            return {"executed": False, "delivered": False, "response": None, "events": events, "error": "Invalid simulated call"}
-        response = TOOLS[tool](request)
-        if response_transform:
-            response = response_transform(response)
-        if not permitted(response, "response"):
-            return {"executed": True, "delivered": False, "response": None, "events": events}
-        return {"executed": True, "delivered": True, "response": response, "events": events}
+        transaction = self.transaction(tool, request, response_transform)
+        try:
+            checkpoint = next(transaction)
+            while True:
+                accepted = False
+                if checkpoint["decision"] == Decision.WARNING.value and approve is not None:
+                    verdict = Verdict(Decision.WARNING, checkpoint["category"], checkpoint["explanation"])
+                    accepted = approve(tool, checkpoint["payload"], checkpoint["phase"], verdict) is True
+                checkpoint = transaction.send(accepted)
+        except StopIteration as done:
+            return done.value

@@ -1,28 +1,86 @@
 # MCPShield
 
-Security research prototype for CS 52560, Purdue University Northwest. This first increment provides a Python standard-library-only security gateway and four deterministic in-memory mock tools. No real commands, private files, network tools, or untrusted servers are executed.
+Detecting and preventing unsafe AI tool calls · CS 52560, Purdue University Northwest.
 
-## Run
+A runnable security research system with request and response enforcement, four virtual MCP tools, a vulnerable deterministic agent, four detector configurations, reproducible corpus-backed scenarios, and a React/FastAPI dashboard. All tool effects are simulated in memory; no untrusted server, shell command, private file, database, or external search is executed.
 
-Python 3.9 or later, from the repository root:
+## Quick start
+
+Use Python 3.10+ (3.11 recommended) and Node 22.12+. Commands below run from the repository root; activate the virtual environment before continuing.
+
+~~~sh
+python -m venv .venv
+# Windows PowerShell: .venv/Scripts/Activate.ps1
+# Windows if activation is restricted: invoke .venv/Scripts/python.exe directly
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements.txt
+python scripts/fetch_corpus.py
+python -m shield.dataset
+npm --prefix frontend ci
+npm --prefix frontend run build
+python -m shield.experiments --repeats 3
+python -m uvicorn shield.api:app --host 127.0.0.1 --port 8000
+~~~
+
+On Windows with restricted PowerShell scripts, use npm.cmd instead of npm. Open **http://127.0.0.1:8000**. API reference: **http://127.0.0.1:8000/docs**. Vite development mode: npm --prefix frontend run dev (proxies /api to port 8000).
+
+The dashboard includes polling tool activity, request/response details, severity and explanations, exact-phase approval/denial, attack simulations, source metadata, dataset counts, four-method comparison charts, confusion matrices, and JSON report export. It displays only observed activity and evaluated results. The approval flow can resume a retained response without executing the tool again.
+
+## Tests and experiments
 
 ~~~sh
 python -m unittest discover -s tests -v
-python -m shield.benchmark --output results/smoke.json
+python scripts/check_server.py
+python -m shield.experiments --split test --repeats 3 --output results/evaluation.json
 ~~~
 
-The report contains per-interaction request/response decisions, confusion matrices, precision, recall, F1, false-positive rate, attack detection/success rates, legitimate delivery success, and local latency. LLM and hybrid are explicitly NOT RUN; adapters and dashboard are pending. No credentials are required for this increment.
+The default report runs baseline and rules. LLM and hybrid remain **NOT RUN** unless opted into with model/credentials. The legacy synthetic smoke command remains available: python -m shield.benchmark.
 
-## Enforcement
+Repetitions rotate execution order; all methods use exactly the same scenario IDs and checksum. Reports retain raw decisions, observable effects, task outcomes, timing samples, confusion matrices, precision, recall, F1, false-positive rate, attack detection/success, legitimate task success, mean/p95 latency, and paired added latency. Classifier failures deny the interaction and invalidate that method's aggregate scores; unavailable calls never become synthetic predictions. Undefined metric denominators produce null. See [methodology](docs/METHODOLOGY.md) and [measured results](docs/EVALUATION.md).
 
-Gateway checks requests before calling a mock tool and checks responses before delivery. ALLOWED proceeds; WARNING requires a trusted explicit callback returning True; BLOCKED always stops. Response denial retains execution status but suppresses the response. Approval is bound to the current tool, payload, phase, and verdict by a synchronous callback; no remote approval API exists yet. Rules are heuristics, not a complete security boundary for real MCP tools.
+## Real LLM configuration
 
-## Methodology and provenance
+Export these environment variables in the process that runs the API or experiments. .env.example documents them; plain Python does not automatically load .env. Docker Compose does.
 
-References: [MCPCorpus paper](https://arxiv.org/abs/2506.23474), [source repository](https://github.com/Snakinya/MCPCorpus). Reviewed 2026-10-18. MCPCorpus describes ecosystem metadata, not labeled malicious/benign interactions. No corpus records have been downloaded or labeled here.
+~~~text
+MCPSHIELD_LLM_MODEL=<model supporting Chat Completions JSON output>
+MCPSHIELD_LLM_API_KEY=<provider API key>
+MCPSHIELD_LLM_BASE_URL=https://api.openai.com/v1
+MCPSHIELD_LLM_TIMEOUT=20
+~~~
 
-The nine versioned scenarios in shield/benchmark.py are hand-authored smoke tests with IDs, provenance, mock server/tool, request/response, attack category, labels, expected decisions, and expected outcomes. They are not a research benchmark. All methods receive the same ordered cases and the report records their SHA-256. There is no training or train/test split. Before research evaluation, import immutable corpus records separately from generated scenarios; canonicalize server identities and group all related and near-duplicate scenarios within one split. Review labels independently and freeze a held-out suite.
+Then run python -m shield.experiments --include-llm --repeats 3 or enable real LLM calls in the dashboard. Calls send scenario payloads to the configured provider and may incur its normal costs. A local OpenAI-compatible endpoint can use loopback HTTP with a nonempty placeholder key. Remote endpoints must use HTTPS. No model is hardcoded. The adapter uses [Chat Completions JSON output](https://developers.openai.com/api/reference/resources/chat), validates every response, and redacts provider errors.
 
-The simulated agent consumes delivered data. File attacks measure delivery of a fixture secret and response attacks measure delivery of injected text. Other attacks currently measure unsafe request reachability, not actual command execution or real agent compromise. Legitimate success currently measures delivery, not semantic task completion. Single-pass latency is noisy; repeated paired experiments and uncertainty estimates remain pending. Smoke-suite scores cannot support general security claims.
+Hybrid precedence: a rule BLOCKED short-circuits; otherwise classify with the LLM and enforce the stricter decision, BLOCKED > WARNING > ALLOWED. Rule warnings cannot be downgraded. Model failures fail closed. WARNING requires explicit one-time approval; BLOCKED cannot be overridden.
 
-See PROJECT_STATUS.md for verified progress and next steps. Preserve the pre-existing nested MCPShield/.git repository. Implementation publication was subsequently authorized by the user.
+## MCP mock endpoint
+
+POST /api/mcp accepts a JSON-RPC subset: initialize, tools/list and tools/call. Example body:
+
+~~~json
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"file_reader","arguments":{"path":"/public/readme.txt"}}}
+~~~
+
+The endpoint enforces MCPSHIELD_METHOD (rules by default; llm/hybrid also supported). Clients cannot select the no-defense configuration. Denials return an error tool result with no tool response data. Warnings return JSON-RPC error -32001 with a session ID; the dashboard can review it from the activity feed. After approval, retrieve /api/simulations/{session_id} for the completed outcome. This is a mock JSON-RPC endpoint, not a complete MCP Streamable HTTP implementation or upstream proxy.
+
+For Python integration, Gateway(detector, executor=trusted_callable).run(tool, request) inspects both boundaries. The executor receives the tool name and arguments; the default allowlist is the four mock names. Gateway.transaction yields phase checkpoints and retains state during approval. Do not connect the deliberately vulnerable simulation executor to real systems.
+
+## Data and provenance
+
+The downloader fetches only inert JSON at MCPCorpus revision 295fe37cd972ea9aa1b48578b2d7bcc40a72ee12 and verifies its pinned SHA-256. The snapshot contains 13,875 unlabeled metadata records. Fourteen canonical repositories have parsed tools matching the supported mappings, producing **126 scenarios**: 42 legitimate interactions and 84 attacks. These are simulated adaptations, not historical malicious interactions or labels for the original servers.
+
+Raw downloads (data/raw), generated scenarios (data/generated), and reports (results) remain separate and ignored by Git. [data/provenance.json](data/provenance.json) records the immutable source, hash and licensing caveat. Run the commands above to regenerate. The pinned source has no repository-level license file; confirm redistribution terms before sharing raw or derived metadata. No upstream Python scripts are imported or executed.
+
+References: [Lin et al., arXiv:2506.23474](https://arxiv.org/abs/2506.23474), [Snakinya/MCPCorpus](https://github.com/Snakinya/MCPCorpus). Metadata alone is never automatically labeled benign.
+
+## Docker
+
+~~~sh
+docker compose up --build
+~~~
+
+Open http://127.0.0.1:8000. The multi-stage build compiles React and downloads the checksum-pinned metadata. Runtime uses a nonroot user, drops Linux capabilities, and binds to loopback on the host. Docker Desktop's Linux engine must be running. Build-time npm, PyPI and GitHub access is required. Results and pending approvals are ephemeral across container replacement. Configure a Docker volume if you need persistent reports.
+
+Set MCPSHIELD_API_TOKEN to require bearer authorization on API data and mutations; enter it in the dashboard connection settings. The token is tab-session-only. Cross-origin requests are rejected. This is a single-process local research console; run one Uvicorn worker. Multi-user identity, durable approvals, real MCP transports, independent label review, real-model agent studies, and deployment hardening remain outside the validated prototype.
+
+See [PROJECT_STATUS.md](PROJECT_STATUS.md) for verification and handoff. Preserve the pre-existing nested MCPShield/.git repository.

@@ -1,0 +1,11 @@
+.git
+MCPShield
+.venv
+.env
+.env.*
+results
+frontend/node_modules
+frontend/dist
+data/raw
+data/generated
+**/__pycache__

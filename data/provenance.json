@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/Snakinya/MCPCorpus",
+  "revision": "295fe37cd972ea9aa1b48578b2d7bcc40a72ee12",
+  "path": "Website/mcpso_servers_cleaned.json",
+  "url": "https://raw.githubusercontent.com/Snakinya/MCPCorpus/295fe37cd972ea9aa1b48578b2d7bcc40a72ee12/Website/mcpso_servers_cleaned.json",
+  "sha256": "cc14fc4fe5c68b73e77cbaa3e64fc2b58616a8e61d0e96d92b8fd861702b9e20",
+  "bytes": 13158383,
+  "records": 13875,
+  "label_status": "UNLABELED_METADATA",
+  "license": "No repository license file found at pinned revision; verify reuse terms before redistribution."
+}
