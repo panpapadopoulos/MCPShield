@@ -1,0 +1,18 @@
+{
+  "policy_version": "fixture-policy-v2",
+  "prompt_version": "security-classifier-v2.2",
+  "prompt_sha256": "72ba107b68ab09ba6dec04bc279b8dcea8f90265cc00e82a5eac2becacbe587b",
+  "code_sha256": "612e290932d13c4f9b33308c9e8a5c2c75dfbc736c12f2ca68698a0affde83ea",
+  "model": "qwen2.5:3b",
+  "model_digest": "357c53fb659c5076de1d65ccb0b397446227b71a42be9d1603d46168015c9e4b",
+  "generation": {
+    "temperature": 0,
+    "max_tokens": 256,
+    "response_format": "json_schema",
+    "schema_sha256": "9f4b681a3a0f9e8479451847a380e40a0ccc3a253d2d6697d3fbe27191b5904f"
+  },
+  "full_dataset_sha256": "7f8e65d1b2312205bf3028fb0edd9b0bdd86a2a81c867bda1915811db563a6f1",
+  "validation_report": "results/policy-v2-2-json-schema-expanded-validation.json",
+  "frozen_before_regression_run": true,
+  "scope": "Development regression; original test inspected in v1 and new cases are authored controls, not an independent unseen-attack test"
+}

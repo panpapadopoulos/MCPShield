@@ -9,3 +9,4 @@ frontend/dist/
 .env.*
 !.env.example
 data/generated/
+.local/

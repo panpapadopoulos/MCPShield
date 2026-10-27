@@ -1,0 +1,25 @@
+# Optional fully local model runtime; no HTTP trust-policy exception required.
+services:
+  mcpshield:
+    environment:
+      MCPSHIELD_LLM_MODEL: ${MCPSHIELD_LLM_MODEL:-qwen2.5:3b}
+      MCPSHIELD_LLM_API_KEY: ollama
+      MCPSHIELD_LLM_BASE_URL: http://127.0.0.1:11434/v1
+      MCPSHIELD_LLM_TIMEOUT: 120
+      MCPSHIELD_LLM_OUTPUT_FORMAT: json_schema
+  ollama:
+    image: ollama/ollama:0.40.11@sha256:dea72d1e22270fe095b68fdf756d2b489d615643c5a2eaebbc5f569181e322d8
+    network_mode: service:mcpshield
+    environment:
+      OLLAMA_HOST: 127.0.0.1:11434
+      OLLAMA_MODELS: /models
+      OLLAMA_NO_CLOUD: "1"
+    volumes:
+      - local_models:/models
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+volumes:
+  local_models:

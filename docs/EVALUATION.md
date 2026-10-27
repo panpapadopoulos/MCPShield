@@ -1,5 +1,7 @@
 # Recorded simulation results
 
+> Historical baseline/rules run from October 18, before policy-v2. Counts and NOT RUN entries below describe that run. See [current v2 results](POLICY_V2_RESULTS.md) for the latest comparison.
+
 Run timestamp (UTC): 2026-10-18T23:50:20.886958+00:00. Python 3.10.4.
 
 Command: python -m shield.experiments --split test --repeats 3

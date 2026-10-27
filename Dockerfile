@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY shield/ ./shield/
 COPY scripts/ ./scripts/
 COPY data/provenance.json ./data/provenance.json
+COPY data/authored_scenarios.json data/coverage-manifest.json ./data/
 RUN python scripts/fetch_corpus.py && python -m shield.dataset
 COPY --from=frontend /ui/dist ./frontend/dist/
 RUN useradd --uid 10001 --create-home shield && mkdir -p results && chown -R shield:shield /app

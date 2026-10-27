@@ -3,11 +3,13 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from shield.core import Gateway, Decision, Verdict, NoDefense, Rules
 from shield.detectors import LLM, Hybrid, ClassifierUnavailable
-from shield.dataset import generate, load_cases, validate, canonical_server, digest
+from shield.dataset import generate, load_cases, validate, canonical_server, digest, load_authored_cases
 from shield.simulation import Agent
 from shield.experiments import run_experiment
 from shield import api
@@ -21,7 +23,9 @@ class ClassifierTests(unittest.TestCase):
         llm=LLM(transport=lambda body: seen.append(body) or self.response("WARNING"))
         self.assertEqual(llm.inspect("weather",{},"request").decision,Decision.WARNING)
         self.assertEqual(seen[0]["messages"][0]["role"],"system")
-        self.assertEqual(json.loads(seen[0]["messages"][1]["content"])["phase"],"request")
+        self.assertEqual(json.loads(seen[0]["messages"][-1]["content"])["phase"],"request")
+        self.assertEqual(seen[0]["temperature"], 0)
+        self.assertEqual(seen[0]["max_tokens"], 256)
 
     def test_bad_outputs_fail_closed(self):
         for response in [{},self.response("YES"),{"choices":[{"message":{"content":"not JSON"}}]}]:
@@ -108,7 +112,7 @@ class DatasetTests(unittest.TestCase):
         cases=load_cases()
         self.assertTrue(validate(cases))
         self.assertEqual(len(cases),len({c["id"] for c in cases}))
-        self.assertTrue(all(c["source"]["kind"]=="mcpcorpus_metadata_adaptation" for c in cases))
+        self.assertEqual({c["source"]["kind"] for c in cases}, {"mcpcorpus_metadata_adaptation", "authored_fixture"})
 
     def test_monorepo(self):
         self.assertEqual(canonical_server({"url":"https://github.com/Org/Repo/tree/main/a"}),"github.com/org/repo")
@@ -221,6 +225,32 @@ class APITests(unittest.TestCase):
         events=self.client.get("/api/activity").json()["events"]
         self.assertEqual([e["phase"] for e in events],["request","response"])
         self.assertTrue(session["result"]["task_success"])
+
+    def test_slow_inference_does_not_lock_activity_or_expiry_cleanup(self):
+        entered, release = Event(), Event()
+        class SlowDetector:
+            def inspect(self, tool, payload, phase):
+                if phase == "request":
+                    entered.set()
+                    if not release.wait(10):
+                        raise RuntimeError("Test inference timed out")
+                return Rules().inspect(tool, payload, phase)
+        case = next(c for c in self.cases if c["template"] == "legitimate")
+        with patch.object(api, "detector", return_value=SlowDetector()), ThreadPoolExecutor(max_workers=2) as pool:
+            running = pool.submit(api.simulate, api.SimulationRequest(scenario_id=case["id"]))
+            try:
+                self.assertTrue(entered.wait(3), "Inference did not start")
+                self.assertIn("events", pool.submit(api.events).result(timeout=2))
+                with api.lock:
+                    identifier, session = next(iter(api.sessions.items()))
+                    session["created"] -= api.TTL + 1
+                    api.cleanup()
+                    self.assertIn(identifier, api.sessions)
+            finally:
+                release.set()
+            result = running.result(timeout=5)
+        self.assertTrue(result["result"]["delivered"])
+        self.assertNotIn("_lock", result)
 
 
 class ProtocolTests(unittest.TestCase):

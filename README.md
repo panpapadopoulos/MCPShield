@@ -4,6 +4,11 @@ Detecting and preventing unsafe AI tool calls · CS 52560, Purdue University Nor
 
 A runnable security research system with request and response enforcement, four virtual MCP tools, a vulnerable deterministic agent, four detector configurations, reproducible corpus-backed scenarios, and a React/FastAPI dashboard. All tool effects are simulated in memory; no untrusted server, shell command, private file, database, or external search is executed.
 
+**Continuing this project? Start with the [teammate handoff](docs/TEAM_HANDOFF.md)**
+for current status, implemented tasks, setup, dataset counts, experiment artifacts
+and workstreams. [PROJECT_STATUS.md](PROJECT_STATUS.md) is the current summary;
+older status text is preserved separately as history.
+
 ## Quick start
 
 Use Python 3.10+ (3.11 recommended) and Node 22.12+. Commands below run from the repository root; activate the virtual environment before continuing.
@@ -36,9 +41,14 @@ python -m shield.experiments --split test --repeats 3 --output results/evaluatio
 
 The default report runs baseline and rules. LLM and hybrid remain **NOT RUN** unless opted into with model/credentials. The legacy synthetic smoke command remains available: python -m shield.benchmark.
 
-Repetitions rotate execution order; all methods use exactly the same scenario IDs and checksum. Reports retain raw decisions, observable effects, task outcomes, timing samples, confusion matrices, precision, recall, F1, false-positive rate, attack detection/success, legitimate task success, mean/p95 latency, and paired added latency. Classifier failures deny the interaction and invalidate that method's aggregate scores; unavailable calls never become synthetic predictions. Undefined metric denominators produce null. See [methodology](docs/METHODOLOGY.md) and [measured results](docs/EVALUATION.md).
+Repetitions rotate execution order; all methods use exactly the same scenario IDs and checksum. Reports retain raw decisions, observable effects, task outcomes, timing samples, confusion matrices, precision, recall, F1, false-positive rate, attack detection/success, legitimate task success, mean/p95 latency, and paired added latency. Classifier failures deny the interaction and invalidate that method's aggregate scores; unavailable calls never become synthetic predictions. Undefined metric denominators produce null. See [methodology](docs/METHODOLOGY.md), [current v2 results](docs/POLICY_V2_RESULTS.md), and [historical baseline results](docs/EVALUATION.md).
 
 ## Real LLM configuration
+
+For a local model without paid API calls, see [Windows Ollama setup](docs/LOCAL_LLM.md).
+The [historical v1 local-model results](docs/LOCAL_LLM_RESULTS.md) document substantial
+false positives. The [v2 fixes and measurements](docs/POLICY_V2_RESULTS.md) track the
+subsequent validation-based corrections without overwriting that evidence.
 
 Export these environment variables in the process that runs the API or experiments. .env.example documents them; plain Python does not automatically load .env. Docker Compose does.
 
@@ -51,7 +61,7 @@ MCPSHIELD_LLM_TIMEOUT=20
 
 Then run python -m shield.experiments --include-llm --repeats 3 or enable real LLM calls in the dashboard. Calls send scenario payloads to the configured provider and may incur its normal costs. A local OpenAI-compatible endpoint can use loopback HTTP with a nonempty placeholder key. Remote endpoints must use HTTPS. No model is hardcoded. The adapter uses [Chat Completions JSON output](https://developers.openai.com/api/reference/resources/chat), validates every response, and redacts provider errors.
 
-Hybrid precedence: a rule BLOCKED short-circuits; otherwise classify with the LLM and enforce the stricter decision, BLOCKED > WARNING > ALLOWED. Rule warnings cannot be downgraded. Model failures fail closed. WARNING requires explicit one-time approval; BLOCKED cannot be overridden.
+Hybrid precedence (fixture-policy-v2): mandatory access violations and high-confidence rule blocks short-circuit. Extra permissions always retain WARNING or a stricter model decision. The model can resolve only `heuristic_context` warnings, such as a benign documentation prerequisite. Other decisions use BLOCKED > WARNING > ALLOWED. Model failures fail closed. Final WARNING requires explicit one-time approval; final BLOCKED cannot be overridden.
 
 ## MCP mock endpoint
 
@@ -68,6 +78,13 @@ For Python integration, Gateway(detector, executor=trusted_callable).run(tool, r
 ## Data and provenance
 
 The downloader fetches only inert JSON at MCPCorpus revision 295fe37cd972ea9aa1b48578b2d7bcc40a72ee12 and verifies its pinned SHA-256. The snapshot contains 13,875 unlabeled metadata records. Fourteen canonical repositories have parsed tools matching the supported mappings, producing **126 scenarios**: 42 legitimate interactions and 84 attacks. These are simulated adaptations, not historical malicious interactions or labels for the original servers.
+
+The original scenarios remain in `data/generated/scenarios.json`. Generation also
+creates the default `scenarios-v2.json`: **158 cases** (48 validation, 110 test),
+adding 32 checksum-frozen authored regressions with legitimate coverage for all
+four tools. Authored cases are marked separately; they are development controls,
+not independently reviewed unseen attacks. See the [problem/solution log](docs/PROBLEM_SOLUTION_LOG.md)
+and [proposal alignment](docs/PROPOSAL_ALIGNMENT.md).
 
 Raw downloads (data/raw), generated scenarios (data/generated), and reports (results) remain separate and ignored by Git. [data/provenance.json](data/provenance.json) records the immutable source, hash and licensing caveat. Run the commands above to regenerate. The pinned source has no repository-level license file; confirm redistribution terms before sharing raw or derived metadata. No upstream Python scripts are imported or executed.
 

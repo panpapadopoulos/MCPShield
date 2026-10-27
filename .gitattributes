@@ -1,0 +1,3 @@
+# Keep checksum-frozen authored fixtures byte-identical across platforms.
+data/authored_scenarios.json text eol=lf
+data/coverage-manifest.json text eol=lf

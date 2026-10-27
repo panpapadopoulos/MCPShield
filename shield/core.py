@@ -6,6 +6,8 @@ import json
 import re
 from urllib.parse import unquote
 
+POLICY_VERSION = "fixture-policy-v2"
+
 class Decision(str, Enum):
     ALLOWED = "ALLOWED"
     WARNING = "WARNING"
@@ -21,20 +23,11 @@ class NoDefense:
     def inspect(self, tool, payload, phase):
         return Verdict(Decision.ALLOWED, "none", "Unfiltered simulation baseline")
 
-class Rules:
+class AccessPolicy:
+    """Mandatory fixture access policy; independent of text heuristics."""
     def inspect(self, tool, payload, phase):
         if phase not in ("request", "response"):
             raise ValueError("Unknown inspection phase")
-        text = unquote(json.dumps(payload, sort_keys=True)).lower()
-        patterns = [
-            ("prompt_injection", r"ignore (all |previous |prior )*instructions|system prompt|override security"),
-            ("tool_poisoning", r"before using this tool|secretly send|hide this from"),
-            ("command_injection", r";\s*(?:drop|rm|curl|sh|bash|powershell)\b|\$\(|\x60|\|\||&&|drop\s+table"),
-            ("malicious_response", r"exfiltrate|send credentials|stolen_secret"),
-        ]
-        for category, pattern in patterns:
-            if re.search(pattern, text):
-                return Verdict(Decision.BLOCKED, category, "Matched security policy: " + category)
         if phase == "request":
             if tool not in TOOLS:
                 return Verdict(Decision.BLOCKED, "permissions", "Tool is outside allowlist")
@@ -44,6 +37,28 @@ class Rules:
                 return Verdict(Decision.BLOCKED, "unauthorized_file_access", "Path is outside fixture allowlist")
             if payload.get("permissions"):
                 return Verdict(Decision.WARNING, "excessive_permissions", "Explicit approval required for extra permissions")
+        return None
+
+
+class Rules:
+    def inspect(self, tool, payload, phase):
+        if phase not in ("request", "response"):
+            raise ValueError("Unknown inspection phase")
+        text = unquote(json.dumps(payload, sort_keys=True)).lower()
+        patterns = [
+            ("prompt_injection", r"ignore (all |previous |prior )*instructions|override security|(?:reveal|disclose|dump|print|repeat)\s+(?:the |your |hidden )*system prompt"),
+            ("tool_poisoning", r"secretly send|hide this from"),
+            ("command_injection", r";\s*(?:drop|rm|curl|sh|bash|powershell)\b|\$\(|\x60|\|\||&&|drop\s+table"),
+            ("malicious_response", r"exfiltrate|send credentials|stolen_secret"),
+        ]
+        for category, pattern in patterns:
+            if re.search(pattern, text):
+                return Verdict(Decision.BLOCKED, category, "Matched security policy: " + category)
+        policy = AccessPolicy().inspect(tool, payload, phase)
+        if policy is not None:
+            return policy
+        if re.search(r"\bbefore using this tool\b", text):
+            return Verdict(Decision.WARNING, "heuristic_context", "Tool-use prerequisite needs contextual review")
         return Verdict(Decision.ALLOWED, "none", "No rule matched")
 
 TOOLS = {
@@ -70,14 +85,19 @@ class Gateway:
         response = None
         for phase in ("request", "response"):
             payload = request if phase == "request" else response
+            error_code = None
             try:
                 verdict = self.detector.inspect(tool, payload, phase)
                 if not isinstance(verdict, Verdict) or not isinstance(verdict.decision, Decision):
                     raise ValueError("Invalid detector output")
-            except Exception:
+            except Exception as exc:
                 verdict = Verdict(Decision.BLOCKED, "detector_error", "Classification unavailable; execution denied")
+                code = getattr(exc, "code", "detector_exception")
+                error_code = code if code in {"not_configured", "unavailable", "timeout", "http_error", "transport_error", "output_limit", "invalid_output"} else "detector_exception"
             event = {"phase": phase, "decision": verdict.decision.value,
                      "category": verdict.category, "explanation": verdict.explanation}
+            if error_code:
+                event["error_code"] = error_code
             events.append(event)
             approved = yield {**event, "tool": tool, "payload": deepcopy(payload)}
             if verdict.decision == Decision.BLOCKED or (verdict.decision == Decision.WARNING and approved is not True):

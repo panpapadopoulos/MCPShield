@@ -16,9 +16,9 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field, ConfigDict, StrictBool
-from .core import Decision
+from .core import Decision, POLICY_VERSION
 from .dataset import load_cases, statistics
-from .detectors import detector, LLM
+from .detectors import detector, LLM, PROMPT_VERSION
 from .experiments import run_experiment
 from .simulation import Agent
 
@@ -70,7 +70,7 @@ def configured_llm():
     try:
         return LLM()
     except (ValueError, TypeError):
-        raise HTTPException(503,"Invalid classifier endpoint or timeout configuration")
+        raise HTTPException(503,"Invalid classifier endpoint, timeout or output-format configuration")
 
 def cases():
     try:
@@ -80,13 +80,14 @@ def cases():
 
 def add_event(session, checkpoint):
     global sequence
-    sequence += 1
-    entry = {"sequence": sequence,"session_id": session["id"],"timestamp": datetime.now(timezone.utc).isoformat(),
-             "scenario_id": session["scenario_id"],"method": session["method"],
-             "severity": {"ALLOWED":"info","WARNING":"medium","BLOCKED":"high"}[checkpoint["decision"]],
-             **deepcopy(checkpoint)}
-    activity.append(entry)
-    session["events"].append(entry)
+    with lock:
+        sequence += 1
+        entry = {"sequence": sequence,"session_id": session["id"],"timestamp": datetime.now(timezone.utc).isoformat(),
+                 "scenario_id": session["scenario_id"],"method": session["method"],
+                 "severity": {"ALLOWED":"info","WARNING":"medium","BLOCKED":"high"}[checkpoint["decision"]],
+                 **deepcopy(checkpoint)}
+        activity.append(entry)
+        session["events"].append(entry)
 
 def advance(session, approved=None):
     transaction = session["transaction"]
@@ -103,16 +104,23 @@ def advance(session, approved=None):
         session.pop("transaction",None)
 
 def public_session(session):
-    return deepcopy({k:v for k,v in session.items() if k not in ("transaction","created")})
+    return deepcopy({k:v for k,v in session.items() if k not in ("transaction","created","_lock")})
 
 def cleanup():
     for key in list(sessions):
         session = sessions[key]
         if monotonic() - session["created"] > TTL:
-            transaction = session.pop("transaction",None)
-            if transaction:
-                transaction.close()
-            del sessions[key]
+            # Never close a generator while another thread is classifying it.
+            # Nonblocking acquisition avoids reversing session/registry lock order.
+            if not session["_lock"].acquire(blocking=False):
+                continue
+            try:
+                transaction = session.pop("transaction",None)
+                if transaction:
+                    transaction.close()
+                del sessions[key]
+            finally:
+                session["_lock"].release()
 
 @app.get("/api/health")
 def health():
@@ -122,7 +130,8 @@ def health():
 def config():
     llm = configured_llm()
     return {"methods":["no_defense","rules","llm","hybrid"], "llm_configured":llm.configured,
-            "model":llm.model or None,"approval_ttl_seconds":TTL, "simulation_only":True}
+            "model":llm.model or None,"approval_ttl_seconds":TTL, "simulation_only":True,
+            "policy_version": POLICY_VERSION, "prompt_version": PROMPT_VERSION, "output_format": llm.output_format}
 
 @app.get("/api/scenarios", dependencies=[Depends(authorize)])
 def scenario_list():
@@ -150,9 +159,11 @@ def simulate(body: SimulationRequest):
             raise HTTPException(429,"Session capacity reached; retry after expiry")
         identifier = secrets.token_urlsafe(18)
         session = {"id":identifier,"scenario_id":body.scenario_id,"method":body.method,
+                   "_lock": RLock(),
                    "status":"new","created":monotonic(),"events":[],"pending":None,"approval_id":None,
                    "transaction":Agent(detector(body.method)).transaction(deepcopy(case))}
         sessions[identifier] = session
+    with session["_lock"]:
         advance(session)
         return public_session(session)
 
@@ -162,6 +173,9 @@ def approval(identifier: str, body: ApprovalRequest):
         cleanup()
         session = sessions.get(identifier)
         if session is None:
+            raise HTTPException(404,"Session missing or expired")
+    with session["_lock"]:
+        if monotonic() - session["created"] > TTL:
             raise HTTPException(404,"Session missing or expired")
         if session["status"] != "approval_required" or not hmac.compare_digest(session["approval_id"],body.approval_id):
             raise HTTPException(409,"Approval is stale, already consumed, or does not match")
@@ -213,7 +227,11 @@ def get_simulation(identifier: str):
         cleanup()
         if identifier not in sessions:
             raise HTTPException(404,"Session missing or expired")
-        return public_session(sessions[identifier])
+        session = sessions[identifier]
+    with session["_lock"]:
+        if monotonic() - session["created"] > TTL:
+            raise HTTPException(404,"Session missing or expired")
+        return public_session(session)
 
 class RPCRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -256,9 +274,11 @@ def mcp(body: RPCRequest):
             raise HTTPException(429,"Session capacity reached")
         identifier=secrets.token_urlsafe(18)
         session={"id":identifier,"scenario_id":"mcp-client-call","method":method,"status":"new",
+                 "_lock": RLock(),
                  "created":monotonic(),"events":[],"pending":None,"approval_id":None,
                  "transaction":Agent(detector(method)).transaction(case)}
         sessions[identifier]=session
+    with session["_lock"]:
         advance(session)
         if session["status"]=="approval_required":
             return {**envelope,"error":{"code":-32001,"message":"Approval required","data":{"session_id":identifier}}}

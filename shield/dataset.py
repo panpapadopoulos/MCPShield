@@ -145,15 +145,29 @@ def validate(cases):
     return True
 
 def load_cases(path=None):
-    path = Path(path) if path else ROOT / "data/generated/scenarios.json"
+    path = Path(path) if path else ROOT / "data/generated/scenarios-v2.json"
     if not path.exists():
         raise FileNotFoundError("Generate scenarios first: python -m shield.dataset")
     cases = json.loads(path.read_text(encoding="utf-8"))
     validate(cases)
     return cases
 
+
+def load_authored_cases():
+    path = ROOT / "data/authored_scenarios.json"
+    manifest = json.loads((ROOT / "data/coverage-manifest.json").read_text(encoding="utf-8"))
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != manifest["sha256"]:
+        raise ValueError("Authored scenario checksum mismatch; explicitly version label changes")
+    cases = json.loads(raw)
+    validate(cases)
+    if len(cases) != manifest["count"]:
+        raise ValueError("Authored scenario count mismatch")
+    return cases
+
 def statistics(cases):
-    return {"scenarios": len(cases), "servers": len({x["server"] for x in cases}),
+    return {"scenarios": len(cases), "servers": len({x["server"] for x in cases if x["source"]["kind"] == "mcpcorpus_metadata_adaptation"}),
+            "source_kinds": dict(Counter(x["source"]["kind"] for x in cases)),
             "categories": dict(Counter(x["attack_category"] for x in cases)),
             "splits": dict(Counter(x.get("split", "smoke") for x in cases)),
             "labels": dict(Counter("malicious" if x["malicious"] else "legitimate" for x in cases)),
@@ -172,7 +186,12 @@ def main():
     output = Path(args.output)
     output.parent.mkdir(parents=True,exist_ok=True)
     output.write_text(json.dumps(cases,indent=2,ensure_ascii=False),encoding="utf-8")
-    print(json.dumps(statistics(cases),indent=2))
+    authored = load_authored_cases()
+    combined = cases + authored
+    validate(combined)
+    expanded = output.with_name(output.stem + "-v2" + output.suffix)
+    expanded.write_text(json.dumps(combined,indent=2,ensure_ascii=False),encoding="utf-8")
+    print(json.dumps({"original_output": str(output), "expanded_output": str(expanded), **statistics(combined)},indent=2))
 
 if __name__ == "__main__":
     main()

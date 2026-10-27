@@ -5,10 +5,12 @@ services:
       - "127.0.0.1:8000:8000"
     environment:
       MCPSHIELD_API_TOKEN: ${MCPSHIELD_API_TOKEN:-}
+      MCPSHIELD_METHOD: ${MCPSHIELD_METHOD:-rules}
       MCPSHIELD_LLM_MODEL: ${MCPSHIELD_LLM_MODEL:-}
       MCPSHIELD_LLM_API_KEY: ${MCPSHIELD_LLM_API_KEY:-}
       MCPSHIELD_LLM_BASE_URL: ${MCPSHIELD_LLM_BASE_URL:-https://api.openai.com/v1}
       MCPSHIELD_LLM_TIMEOUT: ${MCPSHIELD_LLM_TIMEOUT:-20}
+      MCPSHIELD_LLM_OUTPUT_FORMAT: ${MCPSHIELD_LLM_OUTPUT_FORMAT:-json_object}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

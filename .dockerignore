@@ -1,6 +1,7 @@
 .git
 MCPShield
 .venv
+.local
 .env
 .env.*
 results
