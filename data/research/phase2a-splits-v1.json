@@ -1,0 +1,85 @@
+{
+  "schema": "research-splits-v1",
+  "dataset_sha256": "e94041e6fb5ee2d40dec81e661a463fd3d6bdf88282e5dfc266f0b6a4555a845",
+  "historical_sha256": "ac9b711753e4e37af83c423023063dda8b9b20e37c85323a688ef0c2fe7072e1",
+  "seed": 23,
+  "components": [
+    [
+      "p2a-coastal-weather"
+    ],
+    [
+      "p2a-conflicting-source"
+    ],
+    [
+      "p2a-database-apostrophe"
+    ],
+    [
+      "p2a-description-hijack",
+      "p2a-description-hijack-variant"
+    ],
+    [
+      "p2a-error-is-data"
+    ],
+    [
+      "p2a-pipeline-argument"
+    ],
+    [
+      "p2a-public-followup"
+    ],
+    [
+      "p2a-quoted-lab-manual"
+    ],
+    [
+      "p2a-redirected-result"
+    ],
+    [
+      "p2a-restricted-ledger"
+    ],
+    [
+      "p2a-retrieval-pretext",
+      "p2a-retrieval-pretext-variant"
+    ],
+    [
+      "p2a-scope-question"
+    ],
+    [
+      "p2a-unicode-place"
+    ],
+    [
+      "p2a-write-escalation"
+    ]
+  ],
+  "assignments": {
+    "p2a-conflicting-source": "validation",
+    "p2a-restricted-ledger": "validation",
+    "p2a-redirected-result": "validation",
+    "p2a-retrieval-pretext": "train",
+    "p2a-retrieval-pretext-variant": "train",
+    "p2a-quoted-lab-manual": "train",
+    "p2a-description-hijack": "train",
+    "p2a-description-hijack-variant": "train",
+    "p2a-error-is-data": "train",
+    "p2a-coastal-weather": "train",
+    "p2a-public-followup": "train",
+    "p2a-unicode-place": "train",
+    "p2a-scope-question": "train",
+    "p2a-write-escalation": "train",
+    "p2a-pipeline-argument": "train",
+    "p2a-database-apostrophe": "train"
+  },
+  "counts": {
+    "validation": 3,
+    "train": 13
+  },
+  "final_test": {
+    "status": "NOT_COLLECTED",
+    "custodian": null,
+    "commitment_sha256": null,
+    "source_groups": [],
+    "template_groups": [],
+    "derivation_families": [],
+    "description_texts": [],
+    "policy": "No pilot examples may become untouched final-test examples. An independent custodian must collect and seal a new source/family-disjoint final test before model selection. Register exclusion groups and a content SHA-256 commitment without publishing interactions to developers."
+  },
+  "scope": "Development allocation only; pilot exposed, unreviewed, not an independent final test"
+}

@@ -1,0 +1,10 @@
+{
+  "status": "NOT_COLLECTED",
+  "custodian": null,
+  "commitment_sha256": null,
+  "source_groups": [],
+  "template_groups": [],
+  "derivation_families": [],
+  "description_texts": [],
+  "policy": "No pilot examples may become untouched final-test examples. An independent custodian must collect and seal a new source/family-disjoint final test before model selection. Register exclusion groups and a content SHA-256 commitment without publishing interactions to developers."
+}

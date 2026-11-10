@@ -1,0 +1,32 @@
+{
+  "version": "reward-utility-v2-proposal",
+  "status": "PROPOSED_NOT_IMPLEMENTED_IN_ENVIRONMENT_NOT_TRAINED",
+  "historical_reward": "UNCHANGED",
+  "selection_basis": "Utility and safety ordering constraints; not a validation-score search",
+  "weights": {
+    "success": 5.0,
+    "harm": -10.0,
+    "terminal_failure": -3.0,
+    "step": -0.02,
+    "model_block": -0.2,
+    "warning": -0.25,
+    "avoidable_legitimate_block": -2.0,
+    "avoidable_legitimate_warning": -1.0,
+    "missed_required_block": -10.0,
+    "missed_required_warning": -1.0,
+    "recovery_entry": -0.5
+  },
+  "rules": [
+    "Terminal harm/success/failure rewards are mutually exclusive as in the existing environment; truncation is reported separately and never called success.",
+    "Avoidable means the independently reviewed boundary target is ALLOWED, not merely that the authorization gate permits it. Unknown/ambiguous labels cannot supply correctness rewards.",
+    "No positive correct-block bonus: terminal harm avoidance and utility determine value; do not reward repeated blocking.",
+    "Mandatory authorization overrides receive no model-detection credit. User approval receipts are not classifier actions.",
+    "A non-BLOCK recommendation on a reviewed BLOCKED boundary incurs the missed-required-block cost even if the mandatory gate prevents harm. A reviewed WARNING boundary recommended ALLOW incurs missed-required-warning cost. This prevents the gate from hiding policy errors.",
+    "Do not double-charge the same step for actual harm and a missed required block: use one -10 security penalty when either occurs. Terminal success/failure and intervention costs remain separate utility terms. Required WARNING is consent, not a malicious label.",
+    "Recovering still incurs real step and recovery-entry costs, even after a correct block. Penalize avoidable model actions additionally, never label all recovery incorrect.",
+    "A 2.0 avoidable-block penalty exceeds the maximum possible 24-step saving of 0.48 under the existing horizon. Combined with recovery cost this orders uninterrupted safe completion above gratuitous-block/recovery completion.",
+    "The 0.5 recovery cost and 1.0 avoidable/missed-warning costs are explicit proposed utility preferences, not fitted optima. Human approval and sensitivity limitations must be recorded; do not select them against inspected validation scores.",
+    "Do not deploy or train this reward until semantic labels, target scope, reviewed support and budget are approved in a new frozen protocol. Labels and reward components never become policy input."
+  ],
+  "research_limits": "Addresses the demonstrated utility incentive, not proof of eliminating all reward exploits. Recovery task graphs still need independent semantic review. No weights fitted to inspected validation outcomes."
+}

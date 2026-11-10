@@ -1,5 +1,23 @@
 # MCPShield
 
+Offline research data development: see [Phase 2A data tools](docs/RESEARCH_DATA.md).
+The next collection and blind review packages are described in [dataset expansion](docs/DATASET_EXPANSION.md).
+Supervised and sequential environment interfaces: [learning foundations](docs/LEARNING_FOUNDATIONS.md).
+Bounded technical PPO checks: [PPO infrastructure](docs/PPO_INFRASTRUCTURE.md).
+The separate pilot remains unreviewed. [Trained PPO development diagnostics](docs/TRAINED_DEVELOPMENT_RESULTS.md) are available; supervised and final scientific comparisons remain NOT RUN.
+
+Current [training readiness and exact commands](docs/TRAINING_READINESS.md) and
+[research report draft](docs/RESEARCH_REPORT.md) distinguish synthetic software
+checks from reviewed-data experiments and independent evaluation.
+Pinned MiniLM is verified locally. The approved longer PPO development run is
+complete: two seeds learned an initial-block/recovery shortcut and one remained
+always-ALLOW; these findings do not establish attack recognition.
+
+The Evaluation page also includes a read-only five-method research panel. It
+shows NOT RUN until an explicitly approved compatible comparison artifact is
+published; development evidence and authorization overrides are labeled separately.
+Historical four-method simulation and evaluation remain available.
+
 Detecting and preventing unsafe AI tool calls · CS 52560, Purdue University Northwest.
 
 A runnable security research system with request and response enforcement, four virtual MCP tools, a vulnerable deterministic agent, four detector configurations, reproducible corpus-backed scenarios, and a React/FastAPI dashboard. All tool effects are simulated in memory; no untrusted server, shell command, private file, database, or external search is executed.
@@ -19,11 +37,11 @@ python -m venv .venv
 # Windows if activation is restricted: invoke .venv/Scripts/python.exe directly
 # macOS/Linux: source .venv/bin/activate
 python -m pip install -r requirements.txt
+python -m pip install -r research/requirements-gym.txt
 python scripts/fetch_corpus.py
 python -m shield.dataset
 npm --prefix frontend ci
 npm --prefix frontend run build
-python -m shield.experiments --repeats 3
 python -m uvicorn shield.api:app --host 127.0.0.1 --port 8000
 ~~~
 
@@ -40,6 +58,12 @@ python -m shield.experiments --split test --repeats 3 --output results/evaluatio
 ~~~
 
 The default report runs baseline and rules. LLM and hybrid remain **NOT RUN** unless opted into with model/credentials. The legacy synthetic smoke command remains available: python -m shield.benchmark.
+
+The current source suite contains198 tests. Default discovery skips11 optional
+optimizer integration checks; these require an explicit opt-in and perform only
+synthetic software checks, not scientific training. See the clone-ready
+[teammate guide](docs/TEAM_HANDOFF.md) for isolated ML dependencies and current
+[status](PROJECT_STATUS.md) for completed development experiments and open gates.
 
 Repetitions rotate execution order; all methods use exactly the same scenario IDs and checksum. Reports retain raw decisions, observable effects, task outcomes, timing samples, confusion matrices, precision, recall, F1, false-positive rate, attack detection/success, legitimate task success, mean/p95 latency, and paired added latency. Classifier failures deny the interaction and invalidate that method's aggregate scores; unavailable calls never become synthetic predictions. Undefined metric denominators produce null. See [methodology](docs/METHODOLOGY.md), [current v2 results](docs/POLICY_V2_RESULTS.md), and [historical baseline results](docs/EVALUATION.md).
 
@@ -98,6 +122,12 @@ docker compose up --build
 
 Open http://127.0.0.1:8000. The multi-stage build compiles React and downloads the checksum-pinned metadata. Runtime uses a nonroot user, drops Linux capabilities, and binds to loopback on the host. Docker Desktop's Linux engine must be running. Build-time npm, PyPI and GitHub access is required. Results and pending approvals are ephemeral across container replacement. Configure a Docker volume if you need persistent reports.
 
+The current image build/startup is **not verified**: the Linux engine was
+unavailable during final QA. Native application/browser checks passed; earlier
+Docker checks do not validate the changed current image.
+
 Set MCPSHIELD_API_TOKEN to require bearer authorization on API data and mutations; enter it in the dashboard connection settings. The token is tab-session-only. Cross-origin requests are rejected. This is a single-process local research console; run one Uvicorn worker. Multi-user identity, durable approvals, real MCP transports, independent label review, real-model agent studies, and deployment hardening remain outside the validated prototype.
 
-See [PROJECT_STATUS.md](PROJECT_STATUS.md) for verification and handoff. Preserve the pre-existing nested MCPShield/.git repository.
+See [PROJECT_STATUS.md](PROJECT_STATUS.md) for verification and handoff. Preserve
+any separate nested repository/checkpoint; verify the active root with git
+rev-parse --show-toplevel before making changes.

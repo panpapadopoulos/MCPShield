@@ -1,259 +1,173 @@
-# Teammate handoff
+# Teammate setup and review guide
 
-Updated October 26, 2026. This is the starting point for continuing MCPShield.
-Use [current status](../PROJECT_STATUS.md) for the summary and
-[problem/solution log](PROBLEM_SOLUTION_LOG.md) for the development history.
+Updated November 9, 2026. Deadline: **November 23, 2026**.
+[PROJECT_STATUS.md](../PROJECT_STATUS.md) is the authoritative overview;
+[RESEARCH_REPORT.md](RESEARCH_REPORT.md) contains verified findings and pending work.
 
-## 1. Get the complete working version
+## Clone and repository layout
 
-The repository root contains `shield/`, `frontend/`, `scripts/`, `tests/` and
-`Dockerfile`. On the current machine it is
-`C:\Users\panos\Desktop\MCPShield\MCPShield`; the outer folder contains checkpoints.
-Run the commands below from the repository root.
+```powershell
+git clone --branch research/ml-drl-development https://github.com/panpapadopoulos/MCPShield.git
+cd MCPShield
+```
 
-The pre-continuation commit was `62aec72`. The user authorized publishing the
-complete continuation, including this handoff. Update your clone to the commit
-containing this guide; use `git log -1` to identify the revision. The earlier
-handoff checkpoint remains a point-in-time local snapshot. Recorded experiment
-evidence is transferred separately as explained below.
+Work in the directory containing shield, frontend, research and Dockerfile. Do
+not initialize, reset or modify any separate preserved Git repository/checkpoint.
 
-Git deliberately excludes model weights, dependencies, generated/raw data and
-`results/`. Checkpoints are outside the repository at `../checkpoints/` and are
-also not part of a clone. Teammates needing the recorded historical predictions
-should receive the handoff `evidence.zip` in addition to source. Keep credentials
-in local environment settings; the local Ollama key is only the `ollama` placeholder.
+| Directory | Purpose |
+| --- | --- |
+| shield/ | Historical gateway, rules/Qwen/hybrid, simulator, API and experiments |
+| frontend/ | React18/Vite dashboard and read-only research results panel |
+| research/ | Observation/review/custody pipeline, SetFit, Gymnasium/PPO, evaluator and export CLI |
+| data/ | Authored controls, provenance, project-authored pilot and proposed reward; no raw corpus |
+| scripts/ | Pinned corpus retrieval, local model setup and historical evaluation utilities |
+| tests/ | Pure contracts, app/API/data tests and opt-in synthetic optimizer checks |
+| docs/ | Status, methodology, results summaries and reviewer instructions |
+| .github/workflows/ | CI definition; not proof of a completed remote run |
 
-## 2. What is implemented and where
+Git excludes .local, model weights/checkpoints, environments, raw/generated
+metadata, reviewer returns, custody payloads and results. You do not need the
+owner's .local directory to run the app. Default research rows are NOT RUN until
+compatible artifacts are produced. Historical summaries are public; raw prediction
+artifacts require a separately authorized transfer with provenance/reuse checks.
 
-| Area | Files | Current behavior |
-| --- | --- | --- |
-| Gateway and access policy | `shield/core.py` | Request/response checkpoints, mandatory paths/tools/permissions, retained response approval, final blocks cannot be overridden |
-| Rules / LLM / hybrid | `shield/detectors.py` | Explicit fixture authorization, real local classifier, schema validation, safe failure codes, contextual heuristic review |
-| Virtual tools and agent | `shield/simulation.py` | Four tools, deterministic vulnerable agent, independently recorded virtual effects; no real dangerous execution |
-| Data generation | `shield/dataset.py`, `data/authored_scenarios.json`, `data/coverage-manifest.json` | Preserve original adaptations and generate expanded v2; validate frozen authored bytes and groups |
-| Metrics and experiment protocol | `shield/experiments.py` | Same cases for four methods, warning denial, real-model opt-in, raw observations and paired latency |
-| API / approvals / activity | `shield/api.py` | FastAPI, one-time approval/expiry, per-session locking, mock JSON-RPC MCP subset |
-| Dashboard | `frontend/src/main.jsx`, `style.css` | Activity, simulations, approval review, dataset explorer, measured comparison, JSON export |
-| Local model launcher | `scripts/local_llm.ps1`, `check_llm.py` | Process-local Windows configuration and real connection probes |
-| Versioned evaluation | `scripts/evaluate_local.py` | Validation by default, exact model provenance, journals, no evidence overwrites |
-| Before/after analysis | `scripts/compare_versions.py` | Matching case/repetition sets, labels and baseline effects; separates added coverage |
-| Deployment | `Dockerfile`, `compose.yaml`, `compose.local-llm.yaml` | Base app and optional namespace-local Ollama service with persistent model volume |
-| Tests | `tests/test_core.py`, `test_system.py`, `test_policy_v2.py`, `test_reporting.py` | Enforcement, approvals, API, dataset intent/coverage, failures and runtime metadata |
+## Install and run the application
 
-The project still compares exactly **no defense, rules, LLM, hybrid**. No AutoML
-or weight training was added. See [proposal alignment](PROPOSAL_ALIGNMENT.md).
-
-## 3. Dataset counts and terminology
-
-| Dataset | Legitimate | Malicious | Validation | Test/regression | Total |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Original adaptations | 42 | 84 | 36 | 90 | 126 |
-| Added authored coverage | 20 | 12 | 12 | 20 | 32 |
-| Current combined v2 | 62 | 96 | 48 | 110 | 158 |
-
-The original 90 test cases contain 30 legitimate and 60 malicious interactions.
-The expanded 110 contain 42 legitimate and 68 malicious interactions.
-
-The original 126 are nine templates repeated over 14 selected repository sources
-from pinned MCP metadata. Metadata is not a labeled attack dataset: our labels
-describe authored interactions and expected virtual effects, not source-server
-reputations. The added 32 are separately marked `authored_fixture` cases and give
-both splits legitimate coverage of all four tools.
-
-Validation tuned policy/prompts; no model weights were trained. The original test
-was inspected in v1, and the authored additions are development regressions.
-Neither is an untouched independent final evaluation. Preserve this distinction
-in presentation/report claims. See [methodology](METHODOLOGY.md).
-
-## 4. Fresh native setup (Windows)
-
-Prerequisites: Python 3.10+ (3.11 recommended), Node 22.12+, internet for initial
-dependency/corpus/model downloads, and Ollama installed or extracted locally.
-Use explicit virtual-environment Python commands to avoid the wrong interpreter.
+Use Python3.11-3.13 and Node22.12+; Python3.13 is the tested optional ML runtime.
+Commands are PowerShell from repository root. No model download or paid API is
+needed for the baseline/rules app. No experiment is run by these startup commands.
 
 ```powershell
 python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r requirements.txt
-.venv/Scripts/python.exe scripts/fetch_corpus.py
-.venv/Scripts/python.exe -m shield.dataset
-npm.cmd --prefix frontend ci
+$appPy = '.\.venv\Scripts\python.exe'
+& $appPy -m pip install -r requirements.txt
+& $appPy -m pip install -r research/requirements-gym.txt
+& $appPy scripts/fetch_corpus.py
+& $appPy -m shield.dataset
+npm.cmd --prefix frontend ci --no-audit --no-fund
 npm.cmd --prefix frontend run build
-.venv/Scripts/python.exe -m unittest discover -s tests -v
+& $appPy -m uvicorn shield.api:app --host 127.0.0.1 --port 8000
 ```
 
-Generation writes both `data/generated/scenarios.json` (original 126) and
-`data/generated/scenarios-v2.json` (default combined 158). The tracked authored
-fixture files use LF line endings so their raw checksum matches on Windows/Linux.
+Open http://127.0.0.1:8000 or /docs. In a second terminal, frontend development
+mode is `npm.cmd --prefix frontend run dev`; Vite proxies /api to backend8000.
+On POSIX use .venv/bin/python and npm instead of the Windows command names.
+The app is an ASGI source application, not a wheel package. For authentication,
+set MCPSHIELD_API_TOKEN before starting the server and enter the same value in the
+browser's API connection settings. Use your own token; never commit it. Plain
+Python does not automatically load .env. Compose does. All dangerous effects are
+simulated; do not connect the vulnerable agent to real private resources.
 
-For Ollama, follow [LOCAL_LLM.md](LOCAL_LLM.md). The measured model is
-`qwen2.5:3b`, native runtime Ollama 0.40.11. If the local server is already
-listening on port 11434, use that server after checking its model/configuration.
-For a fresh server, keep terminal 1 open:
+## Reproduce data and run tests
+
+The downloader retrieves inert JSON from pinned MCPCorpus revision
+295fe37cd972ea9aa1b48578b2d7bcc40a72ee12, verifies its SHA-256, and never executes
+upstream code. Reuse terms remain unverified: keep downloaded/generated metadata
+local. Historical generation creates126 original and158 combined scenarios.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/local_llm.ps1 serve
+& $appPy -m research.cli generate
+& $appPy -m research.expand_cli
+& $appPy -m research.reviewer_ui
+& $appPy -m unittest discover -s tests -v
+& $appPy -m pip check
 ```
 
-In terminal 2, download once, check, then start the dashboard:
+The first command reproduces the project-authored pilot and verifies its committed
+manifest. The second generates38 episodes/68 UNREVIEWED boundaries under
+ignored data/generated and blank review exports under ignored .local. The third
+creates two standalone offline reviewer HTML pages. No human attestation or
+scientific training occurs. Commands refuse conflicting artifact overwrites;
+use fresh output paths when deliberately creating a new version. Send reviewers
+their own REVIEW.html/INSTRUCTIONS.md; use [REVIEW_GUIDELINES.md](REVIEW_GUIDELINES.md)
+for import/adjudication instructions. Never manufacture votes or erase dissent.
+
+Gymnasium is needed for collected environment tests; it is not a model dependency.
+Default discovery includes198 tests with11 optional optimizer checks skipped.
+Those checks require a separate CPU ML environment and explicit opt-in, and their
+setup performs synthetic optimization. They do not require reviewed scientific
+checkpoints and must not be called independent efficacy experiments.
+
+## Optional ML dependencies, checkpoints and training gates
+
+Install only if reviewing/running ML; keep it separate from the app environment:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/local_llm.ps1 pull
-powershell -ExecutionPolicy Bypass -File scripts/local_llm.ps1 check
-powershell -ExecutionPolicy Bypass -File scripts/local_llm.ps1 dashboard
+py -3.13 -m venv .local/ml-venv
+$ml = '.\.local\ml-venv\Scripts\python.exe'
+& $ml -m pip install torch==2.6.0+cpu --index-url https://download.pytorch.org/whl/cpu
+& $ml -m pip install -r research/requirements-ml-lock.txt
+& $ml -m pip check
 ```
 
-Dashboard: http://127.0.0.1:8000. API reference: http://127.0.0.1:8000/docs.
-The helper sets process-local model/endpoint/key/output-format variables; it does
-not load `.env` automatically. The default model files are in `.local/models`.
-The three connection probes are not benchmark evidence. Cold model loading and
-CPU inference can take seconds or longer. Run one Uvicorn worker.
-
-For Linux/macOS native Python setup, use the activation commands in [README](../README.md).
-The Windows launcher is PowerShell-specific; the Docker route below is an alternative.
-
-## 5. Docker setup including the local model
-
-Docker's Linux engine must be running, and host port 8000 must be available.
-
-```sh
-docker compose -f compose.yaml -f compose.local-llm.yaml up --build -d
-docker compose -f compose.yaml -f compose.local-llm.yaml exec ollama ollama pull qwen2.5:3b
-docker compose -f compose.yaml -f compose.local-llm.yaml exec mcpshield python scripts/check_llm.py
-```
-
-Open http://127.0.0.1:8000. Stop with:
-
-```sh
-docker compose -f compose.yaml -f compose.local-llm.yaml down
-```
-
-The model shares the application's network namespace and uses loopback HTTP;
-port 11434 is not published. Model weights persist in a named volume. Verification
-reused native model weights read-only; the normal setup downloads into the volume.
-The base Compose file alone starts the app without a model server. Reports and
-approval sessions are ephemeral in the default container; export required evidence.
-Rebuild from source to include the latest reporting-script fix.
-
-## 6. Run experiments and preserve evidence
-
-Keep Ollama running. Develop against validation, record settings, then freeze
-before a new evaluation. Existing output names already contain evidence on the
-current machine, so choose fresh names for continuation runs:
+The lock records the tested Windows CPU runtime; other platforms may need their
+own verified lock. MiniLM (~91MB) and Qwen are not in Git. Explicitly approved
+MiniLM provisioning uses `python -m research.provision_minilm --approve-download`;
+its revision is1110a243fdf4706b3f48f1d95db1a4f5529b4d41. Do not run provisioning or
+training just to inspect source. [TRAINING_READINESS.md](TRAINING_READINESS.md)
+defines reviewed-data inputs/approval and exact training entry points. Optional
+synthetic optimizer tests, only with separate authorization to execute them:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/local_llm.ps1 evaluate -Split validation -Repeats 1 -Output results/team-validation-r1.json
-powershell -ExecutionPolicy Bypass -File scripts/local_llm.ps1 evaluate -Split test -Repeats 3 -Output results/team-regression-r3.json
+$env:MCPSHIELD_SETFIT_INTEGRATION='1'
+$env:MCPSHIELD_PPO_INTEGRATION='1'
+& $ml -m unittest discover -s tests -p test_training_readiness.py
+& $ml -m unittest discover -s tests -p test_ppo.py
 ```
 
-`-Suite original` selects the original data; `-Suite expanded` is the default.
-The local runner opts into actual model calls and refuses an existing final file
-or partial journal. Partial JSONL preserves observations after interruption and
-has no valid aggregate by itself. `ERROR` methods have no aggregate efficacy
-score. Do not replace unavailable outputs with predictions or classify errors
-as successful attack detections.
+Currently all68 research boundaries are UNREVIEWED and final data is NOT_COLLECTED.
+Two attested agreeing independent reviews per boundary, adequate class/group
+support, immutable grouped allocations, historical exclusions, custody registration
+and explicit run approval are required. Binary scope is only a proposal if WARNING
+support is inadequate. No reviewed-data MiniLM or independent final evaluation exists.
 
-The default `python -m shield.experiments` runs baseline/rules and leaves model
-methods NOT RUN. That is expected without explicit opt-in. The dashboard's
-Run evaluation action starts three repetitions, controlled by its real-LLM checkbox,
-and overwrites the rolling `results/evaluation.json`; versioned CLI files remain
-separate. A loaded report can have one repetition while the next-run control says three.
+## Models, previous results and five-method dashboard
 
-To reproduce the fair comparison after receiving the v1 raw report:
+Read [POLICY_V2_RESULTS.md](POLICY_V2_RESULTS.md) for historical real local Qwen,
+rules and hybrid findings; [TRAINED_DEVELOPMENT_RESULTS.md](TRAINED_DEVELOPMENT_RESULTS.md)
+for the first PPO ablation; [RESEARCH_REPORT.md](RESEARCH_REPORT.md) for the longer
+PPO run, recovery exploit and pending scientific results. Raw results are ignored,
+so the absence of a report in a fresh clone means NOT RUN, not zero attack success.
+The original historical experiment UI remains operational; it can generate new
+local reports, so preserve existing evidence and use fresh output paths.
+
+The new Evaluation panel reads /api/research-evaluation. It never trains or runs
+inference. `research.delivery --help` documents the approved development comparison
+CLI. It accepts real reviewed SetFit/PPO checkpoints and opt-in local Qwen, records
+actual model identities and produces a fresh checksum envelope. Its24-case bank
+is synthetic development validation, not the reviewed corpus or independent test.
+
+Example command shape AFTER checkpoint availability and separate run approval:
 
 ```powershell
-.venv/Scripts/python.exe scripts/compare_versions.py --before results/history/local-llm-v1-test.json --after results/policy-v2-2-json-schema-expanded-test.json --output results/team-comparison.json
+& $ml -m research.delivery --setfit-run PATH_TO_REVIEWED_SETFIT_RUN --ppo-run PATH_TO_COMPLETED_PPO_RUN --ppo-seed 11 --include-qwen --output .local/research-phase2/dashboard-comparison-v2.json --approve-development-comparison
 ```
 
-It requires four successful methods, unchanged original labels/baseline outcomes
-and matching case/repetition sets. Original 90-case and new 20-case metrics are
-separate; changing case mix is not evidence of a better detector.
+Qwen must be installed/running locally; configure MCPSHIELD_LLM_BASE_URL to
+http://127.0.0.1:11434/v1, MCPSHIELD_LLM_MODEL to the exact installed model and
+MCPSHIELD_LLM_API_KEY to a local placeholder. Missing/invalid checkpoint identities
+cannot publish model scores. The current artifact format is DEVELOPMENT_ONLY.
+Use the default artifact path or set MCPSHIELD_RESEARCH_REPORT before API startup,
+then Refresh results. Recommendations, authorization overrides, uninterrupted
+completion and unsafe effects stay separate. No final-test command is provided:
+release/schema compatibility/frozen protocol still require independent action.
 
-## 7. Evidence and progress to read first
+Docker recipe/Compose exist, but the CURRENT image build/startup is unverified
+because Docker Desktop Linux engine was unavailable during QA. When it is running,
+use `docker compose build --no-cache`, `docker compose up -d`, and check
+http://127.0.0.1:8000/api/health before claiming container readiness.
 
-| File / location | Meaning |
-| --- | --- |
-| `docs/POLICY_V2_RESULTS.md` | Latest validation, regression, fair comparison, limitations |
-| `docs/PROBLEM_SOLUTION_LOG.md` | Each failure, implemented correction, verification and remaining issues |
-| `docs/PRESENTATION.md` | Demo sequence and accurate presentation wording |
-| `data/policy-v2-freeze.json` | Frozen classifier source/settings, prompt/schema/model/dataset hashes |
-| `results/policy-v2-2-json-schema-expanded-validation.json` | Final 48-case validation, one repeat |
-| `results/policy-v2-2-json-schema-expanded-test.json` | Final 110-case regression, one repeat |
-| `results/policy-v2-comparison.json` | Paired original-case comparison and separate coverage summary |
-| `results/policy-v2-remaining-errors.json` | Exact two model false blocks and standalone encoded-path miss |
-| `results/history/` | Original v1 evidence and intermediate source archives |
-| `../checkpoints/2026-10-26-team-handoff/` | Updated source/evidence archives and readable handoff documents |
+## What to review and finish
 
-Results/models/checkpoints are local artifacts, not guaranteed to arrive with a
-Git clone. Preserve the original presentation, v1 model and policy-v2 checkpoints.
+Review trust-boundary projection, review/historical-exclusion gates, saved model
+provenance, common authorization, incomplete artifact handling, interrupted utility,
+recovery exploit accounting and honest pending report sections. Reward-utility-v2
+is PROPOSED / NOT EVALUATED, inactive. No additional architecture or PPO search is
+required. Do not assume the zero-harm PPO seeds recognize attacks.
 
-Known provenance correction: older v2 exports have `local_runtime.ollama` equal
-to `v2-2` because a filename-tag variable replaced runtime metadata. That is not
-an Ollama version. The runner is fixed and covered by `test_reporting.py`; future
-exports keep the actual version object. Earlier v1 evidence and the pinned Docker
-image establish runtime 0.40.11. Historical reports stay untouched; scores, model
-digests and classifier settings are unaffected. The freeze hashes `shield/*.py`;
-this subsequent metadata-only correction is in `scripts/evaluate_local.py`.
-
-## 8. Tasks available for teammates
-
-Owners are unassigned; the team should claim workstreams explicitly.
-
-| Priority / workstream | Starting files | Next action and completion evidence |
-| --- | --- | --- |
-| High: model false positives | `detectors.py`, remaining-errors JSON | Add independently authored validation controls for source-metadata confusion; compare prompt/model choices, freeze a new configuration, retain both security and utility results |
-| High: robustness coverage | `data/authored_scenarios.json`, `dataset.py`, policy tests | Extend encoding/traversal and benign-encoding coverage; preserve the LLM-only/hybrid distinction and prove every attack's baseline effect |
-| High: independent evaluation | Dataset manifests, methodology | Obtain independent label review, audit duplicate/fork identities and encoding, freeze new attack-family-disjoint cases before model changes; document reviewer/provenance |
-| Medium: repeated measurements | `evaluate_local.py`, `experiments.py` | Run three-repeat trials under a fresh output name; record hardware/runtime, rotated order and uncertainty without treating repeats as independent examples |
-| Medium: latency / model selection | `detectors.py`, local model guide | Evaluate suitable alternatives on validation, measure end-to-end security/utility/latency, keep actual model digests and failed runs |
-| Distribution / report | README, proposal map, results, checkpoints | Make sure teammates receive latest source and ignored evidence; keep current results distinct from historical notes |
-| Optional extensions | `api.py`, `core.py`, `simulation.py` | Real MCP transport, real-model agents, durable approvals and multi-user/multi-worker support require separate design and validation |
-
-Current expanded-suite results: rules prevent all attacks and complete 41/42
-legitimate tasks; hybrid prevents all attacks and completes 40/42; standalone LLM
-completes 40/42 but misses one encoded-path attack. Thus hybrid is not generally
-better than rules on this suite. Model inference adds seconds. Keep these findings
-visible while improving the system.
-
-## 9. Completion checklist for the next increment
-
-1. Record the claimed workstream and intended change in the problem/solution log.
-2. Preserve historical source/reports and version changed data, prompts and policies.
-3. Use validation for choices; freeze a genuinely new evaluation for new claims.
-4. Keep mandatory hybrid restrictions, final approval/block semantics, fail-closed
-   errors and response-without-replay behavior covered by tests.
-5. Run relevant tests/builds, actual local-model checks for detector changes, and
-   all four methods on identical cases. Store raw outcomes and fresh output names.
-6. Update current status, measured results, proposal map if scope changes, and this
-   handoff. Record what passed, what failed, what remains open and who owns it.
-
-The current newest native suite has 55 passing tests. Policy-v2 previously passed
-54 tests on both Windows and Linux Docker; those recorded runs predate the new
-metadata regression. Browser and container connection checks establish runnable
-integration, not independent real-agent security or deployment hardening.
-
-The automated Windows browser helpers/tooling currently live in ignored `.local/`
-(`check_browser.cjs`, `check_live_llm.cjs`, and the Playwright installation).
-Screenshots/API traces are in the evidence archive. The handoff checkpoint also
-contains `qa-tooling.zip`: extract it into the source root to restore helper
-scripts and the Playwright package/lock files, then install the tooling:
-
-```powershell
-npm.cmd --prefix .local/browser ci
-$env:PLAYWRIGHT_BROWSERS_PATH = Join-Path (Get-Location) '.local/browsers'
-node .local/browser/node_modules/playwright/cli.js install chromium
-node .local/check_browser.cjs
-node .local/check_live_llm.cjs
-```
-
-The live helper requires local Ollama with the recorded Qwen model. These are
-Windows helpers, not a maintained cross-platform CI suite. The browser flow
-performs a baseline-only evaluation and updates the rolling report. Restore the
-preserved model report and restart the dashboard afterward when preparing a demo:
-
-```powershell
-Copy-Item results/policy-v2-2-json-schema-expanded-test.json results/evaluation.json
-```
-
-A Git clone alone does not include this tooling or historical report. The
-presentation's manual demo sequence is an alternative verification path. A
-maintained cross-platform browser suite is a possible testing workstream.
+Critical path to November23: owner-coordinated reviews/custody -> approved SetFit
+run -> approved common comparison -> model/protocol freeze -> authorized independent
+evaluation -> verified artifact/report completion and final demo/regressions.
+Positive PPO improvement is not required; preserve the negative results. Review
+or custody delays, sparse class support, unknown classifier behavior and Docker
+availability remain risks. Do not replace missing evidence with synthetic scores.

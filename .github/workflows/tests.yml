@@ -14,6 +14,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: pip install -r requirements.txt
+      - run: pip install -r research/requirements-gym.txt
       - run: python scripts/fetch_corpus.py
       - run: python -m shield.dataset
       - run: python -m unittest discover -s tests -v

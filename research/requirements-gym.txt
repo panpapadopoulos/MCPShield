@@ -1,0 +1,2 @@
+# Optional adapter verification only. Install separately from the app environment.
+gymnasium==1.2.2

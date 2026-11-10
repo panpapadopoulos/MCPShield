@@ -1,125 +1,120 @@
-# MCPShield - current project status
+# MCPShield: authoritative project status
 
-Updated: October 26, 2026. Teammates should start with
-[TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md). Historical status text is preserved in
-[the archived handoff](docs/history/PROJECT_STATUS_BEFORE_TEAM_HANDOFF.md).
-This file supersedes old statements that LLM experiments, browser QA or Docker
-verification have not run.
+Updated November 9, 2026. **Hard deadline: November 23, 2026.**
+This overview supersedes October-era status statements. Start with
+[teammate setup](docs/TEAM_HANDOFF.md); verified research findings are in the
+[research report](docs/RESEARCH_REPORT.md). Earlier source/status versions remain
+in Git history and the existing docs/history directory.
 
-## Current implementation
+## Purpose and architecture
 
-Runnable local research prototype: React dashboard -> FastAPI -> resumable
-request/response gateway -> four in-memory tools and a deterministic vulnerable
-agent. Four configurations remain no defense, rules, real local LLM and hybrid.
-All dangerous effects are simulated; this is not a production upstream MCP proxy.
+MCPShield studies whether inspection of AI tool requests/responses can prevent
+unsafe simulated effects while preserving legitimate task utility. React/Vite
+connects to FastAPI, a resumable security gateway, four in-memory tools and a
+deterministic vulnerable agent. This is a local research prototype and mock MCP
+subset, not a demonstrated production upstream MCP proxy or real autonomous agent.
 
-Implemented and checked:
+The historical simulator retains no defense, rules, pretrained local Qwen and
+hybrid. The new research comparison adds trained SetFit/MiniLM and PPO, using
+identical observable schemas, separate mandatory authorization, versioned scenario
+allocation and security/utility metrics. Its no-defense row means authorization
+only; it is not the historical entirely undefended baseline. No detector receives
+labels, hidden effects or future tool responses as input.
 
-- Request and response inspection, fail-closed errors, explicit phase-specific
-  one-time approvals, replay/expiry protection, retained responses without tool replay.
-- Explicit tool/path/permission policy plus content rules. Hybrid cannot downgrade
-  mandatory access violations, clear rule blocks or extra-permission approval.
-  It may resolve only weak heuristic-context warnings.
-- Local Qwen 2.5 3B via Ollama 0.40.11, prompt security-classifier-v2.2,
-  policy fixture-policy-v2, temperature 0, max output 256, schema-constrained JSON.
-  The classifier is pretrained; no model weights were trained.
-- Source-backed corpus adaptations and separately labeled authored coverage cases;
-  immutable corpus checksum, authored manifest, split/group checks and policy freeze.
-- Four-method experiment runner with actual model calls, raw outcomes, hashes,
-  confusion matrices, proposed metrics, approval frequency and latency.
-- Live activity, approvals, dataset explorer, charts, JSON export and provenance UI.
-- Locked dependencies, CI definition, native launch commands, base Docker package
-  and optional fully local model overlay. CI definition is not proof of a remote run.
-- Comparison utility verifies unchanged original case labels and baseline effects,
-  and reports old cases separately from added coverage.
+## Implemented components
 
-## Dataset counts
+- React/FastAPI application, live activity, dataset explorer and JSON export.
+- Request/response gateway, explicit grants, rule detector and historical hybrid.
+- Real local Qwen classifier and preserved historical evaluation tools.
+- Bearer authentication, same-origin controls and exact-phase one-time approvals.
+- Canonical observable feature pipelines; grouped development allocations and
+  historical source/derivation exclusions.
+- Independent-review packages, hash-bound imports, disagreement rejection and
+  custodian metadata/seal/release gates. These do not manufacture human review.
+- SetFit/MiniLM loaders, full-token overlapping windows, training, checkpoint
+  reload, prediction, metrics and model/data/review/source provenance.
+- Gymnasium multi-step simulated environment; PPO training/checkpoints and fixed
+  development protocols. Decisions affect progress, approval, harm and recovery.
+- Five-method evaluator v2, separate raw recommendations/authorization overrides,
+  interrupted versus uninterrupted completion and recovery utility accounting.
+- Read-only five-method dashboard and approved comparison/export CLI. Missing or
+  incompatible artifacts/models show NOT RUN; current publication is DEVELOPMENT_ONLY.
 
-| Version / source | Validation | Test / regression | Total |
-| --- | ---: | ---: | ---: |
-| Original corpus adaptations | 36 | 90 | 126 |
-| Added authored fixtures | 12 | 20 | 32 |
-| Current combined v2 | 48 | 110 | 158 |
+## Datasets and training status
 
-The original test has 30 legitimate and 60 malicious cases. The expanded test
-has 42 legitimate and 68 malicious cases. The 126 original cases repeat nine
-scenario templates over 14 repository sources; they are not 126 independent
-real-world attack records. Validation calibrated prompts/policy, not model weights.
-The inspected test and authored additions are development regressions. Independent
-label review and unseen attack-family evaluation remain open.
+| Item | Current status |
+| --- | --- |
+| MCPCorpus | 13,875 unlabeled metadata records at a pinned revision/checksum; raw data excluded from Git |
+| Historical benchmark | 126 corpus adaptations plus32 authored controls =158;48 validation/110 inspected regression cases |
+| Research expansion | 38 authored episodes/68 boundaries, all UNREVIEWED; generated metadata-derived content excluded from Git |
+| Reviewed labels | No reconciled train/validation labels available; disagreements and missing reviews block fitting |
+| Independent final test | NOT_COLLECTED; no seal, release or evaluation claimed |
+| MiniLM | Downloaded/hash-verified on the development machine; synthetic two-step optimization/reload passed; weights not in Git |
+| Reviewed-data MiniLM | NOT RUN; real labels/class support, custody registration and explicit run approval required |
+| PPO | Development models trained; no independently validated attack-recognition performance |
+| Reward utility v2 | PROPOSED / NOT EVALUATED, inactive; historical rewards/results unchanged |
+| Scientific five-method/final comparison | NOT RUN |
 
-## Measured results
+The committed pilot is project-authored and distinct from the generated38-episode
+expansion. Proposed labels are never independent reviews. Sparse WARNING support
+may require a separately approved binary scope; no binary scientific run exists.
 
-Final expanded test: one repetition, all four methods RUN, no operational errors.
+## Completed experiments
 
-| Method | Attack success | Legitimate success | False positives | Mean latency |
-| --- | ---: | ---: | ---: | ---: |
-| No defense | 100% | 100% | 0% | 0.146 ms |
-| Rules | 0% | 97.62% | 2.38% | 0.151 ms |
-| LLM | 1.47% | 95.24% | 4.76% | 7.166 s |
-| Hybrid | 0% | 95.24% | 4.76% | 4.714 s |
+Historical110-case regression: rules prevented68/68 authored attacks and completed
+41/42 legitimate tasks; Qwen missed one attack and completed40/42; hybrid prevented
+68/68 and completed40/42. These single-pass controlled results do not establish
+hybrid superiority or generalization. Preserve their historical policy/prompt.
 
-On identical original 90 cases, rules legitimate success improved from 66.67%
-to 100%; LLM/hybrid improved from 0% to 93.33%. Source IDs, labels and all
-unprotected baseline effects were verified unchanged. The validation run had
-48 cases; both model-backed methods completed all 20 legitimate cases and
-prevented all 28 attacks. Validation performance is not test performance.
+Nine PPO development models (three representations x three seeds x64 steps) all
+matched always-ALLOW, without demonstrated security improvement. A later frozen
+run trained seeds11/23/37 for10,240 steps each (30,720 total;112 logged training
+seconds). Seeds11/23 achieved zero simulated harm by blocking the first interaction
+and taking recovery, including unnecessary blocks on all24 cases. They had zero
+uninterrupted completions. Seed37 matched always-ALLOW with6 unsafe outcomes/24.
+This is recovery exploitation, not reliable attack recognition. Detailed outcomes,
+constant-policy comparisons, provisional FP probes and negative findings are in
+[RESEARCH_REPORT.md](docs/RESEARCH_REPORT.md). Raw run artifacts/checkpoints stay local.
 
-See [measured results](docs/POLICY_V2_RESULTS.md) and
-[problem/solution history](docs/PROBLEM_SOLUTION_LOG.md). Rules outperform hybrid
-on combined-suite utility and latency; no general hybrid-superiority claim is made.
+## Verification and application QA
 
-## Verification and recent handoff correction
+- Historical combined verification:198 distinct tests passed across app/ML environments.
+- Latest no-training QA:198 tests discovered;187 passed and11 optional optimizer
+  integration checks skipped to avoid starting training. Those skips are not
+  caused by missing scientific checkpoints; their setup explicitly optimizes fixtures.
+- Backend dependency/compile/startup checks and clean locked frontend build passed.
+-40 headless-browser/API assertions passed: authentication, approvals/replay,
+  simulations, all five research rows, NOT RUN handling, isolated artifact loading,
+  separate overrides, historical export/navigation and desktop/mobile layout.
+-48 protected historical/data file hashes remained unchanged during browser QA.
+- Current Docker image build/startup is NOT VERIFIED: Docker Desktop Linux engine
+  was unavailable. Older image checks do not verify the changed current image.
+- CI configuration exists; no successful remote run for this new branch is asserted.
 
-- Policy-v2 verification: 54 tests passed on Windows and in Linux Docker; Vite
-  build, live assets, fresh desktop/mobile flows, real-model API/MCP/browser and
-  namespace-local Docker model probes passed.
-- Handoff refresh: **55 native tests passed**, including a new reporter regression.
-  The reporter reused a prompt filename tag as the Ollama runtime-version value.
-  Future exports now retain the actual runtime version. Detector code, labels,
-  predictions, timing values and historical reports were not changed by this fix.
-- Some older v2 reports have local_runtime.ollama = "v2-2"; that is the known
-  reporting defect, not an Ollama release. Recorded native v1 evidence and the
-  pinned Docker image establish Ollama 0.40.11. Preserve the original reports and
-  cite this correction instead of silently editing their metadata.
-- The detector freeze remains in data/policy-v2-freeze.json. It fingerprints
-  shield/*.py and classifier settings; full source snapshots also cover scripts.
+## Scientific limitations
 
-## Remaining work
+Unreviewed small templated collections, inspected historical tests, developer
+adaptations, few WARNING cases, lossy feature encoders, simplified user approvals,
+shortcuts in recovery dynamics and limited virtual effects restrict conclusions.
+Zero harm can come from mandatory grants or unnecessary blocking. Completion alone
+is insufficient; distinguish decisions, enforcement and security/utility outcomes.
+Synthetic pipeline checks establish execution, not classification effectiveness.
+MCPCorpus reuse terms are unresolved; do not publicly redistribute raw or generated
+metadata-derived content. Source availability is not permission to relicense it.
 
-1. Investigate the two model false blocks using new validation examples. Do not
-   tune the completed regression test until perfect and call it independent.
-2. Retain the standalone LLM encoded-private-path miss as a regression. Hybrid
-   policy already prevents it. Keep LLM-only distinct from hybrid.
-3. Independently review labels, audit metadata encoding/forks, and freeze a new
-   attack-family-disjoint evaluation before making generalization claims.
-4. Run repeated trials with fresh output names, hardware/runtime details and
-   uncertainty estimates. Current model results are single-pass.
-5. Evaluate latency improvements and model alternatives on validation data.
-6. Real-model agents, complete MCP transport, durable storage, multi-user identity
-   and multi-worker coordination are separate extensions beyond this prototype.
+## Remaining work to November 23
 
-Detailed workstreams and completion criteria are in the team handoff. No teammate
-ownership has been assigned in this documentation.
+1. Owner-coordinated independent reviews/adjudication, class/group support and
+   separate custodian collection/sealing; developers do not inspect final examples.
+2. Explicitly approve/run reviewed SetFit training once gates pass; record real
+   metrics, checkpoints, provenance and CPU time.
+3. Approve/run the fixed shared development comparison with actual models. Keep
+   the existing PPO negative findings; further PPO training is not required to finish.
+4. Freeze models/protocol, obtain authorized final release, check released case
+   compatibility and perform the locked independent evaluation without tuning.
+5. Publish verified artifacts to the read-only app, complete pending report tables,
+   reproduce/demo/test, and verify Docker build/startup when its engine is available.
 
-## Repository and artifact handoff
-
-The pre-continuation commit was 62aec72. The user authorized committing and
-pushing the complete continuation and handoff. This status is included in that
-publication commit; use git log -1 for its revision. Source, fixtures, evaluation
-scripts and current documentation are included; ignored runtime/evidence files
-remain separately transferable artifacts.
-
-Raw corpus, generated scenarios, results, dependencies and model files are ignored
-by Git. Rebuild datasets from the source instructions; transfer raw experiment
-artifacts separately when teammates need the historical comparisons.
-
-Checkpoints outside the repository, relative to its root:
-
-- ../checkpoints/2026-10-26-before-local-llm/: original presentation source/evidence.
-- ../checkpoints/2026-10-26-local-llm/: v1 real-model run and source.
-- ../checkpoints/2026-10-26-policy-v2/: frozen classifier and completed regressions.
-- ../checkpoints/2026-10-26-team-handoff/: refreshed docs and reporter metadata fix.
-
-Start with [team handoff](docs/TEAM_HANDOFF.md), [setup](README.md),
-[local model commands](docs/LOCAL_LLM.md), and [presentation notes](docs/PRESENTATION.md).
+Reviews/custody, uncertain class support, unknown learned-model performance and
+limited time are the critical blockers. Do not replace missing evidence with
+synthetic scores or generalization claims to meet the deadline.

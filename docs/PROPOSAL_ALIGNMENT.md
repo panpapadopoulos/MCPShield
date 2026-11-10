@@ -1,5 +1,12 @@
 # Alignment with the MCPShield proposal
 
+This table describes the original four-method implementation and historical
+verification. The supervised/DRL research extension, separate five-method
+comparison and current uncompleted scientific gates are summarized in
+[PROJECT_STATUS.md](../PROJECT_STATUS.md). Docker verification for the current
+snapshot remains pending because the Linux engine was unavailable during final QA;
+earlier image checks do not validate the changed current image.
+
 The fixes refine the proposed system; they do not replace its research question
 or any of its four configurations.
 

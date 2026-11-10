@@ -126,6 +126,15 @@ def cleanup():
 def health():
     return {"status":"ok","simulation_only":True}
 
+@app.get('/api/research-evaluation',dependencies=[Depends(authorize)])
+def research_evaluation():
+    """Read artifacts only: never train, load model pickle files or call a model."""
+    from research.delivery import dashboard
+    path=os.getenv('MCPSHIELD_RESEARCH_REPORT',str(ROOT/'.local/research-phase2/dashboard-comparison-v2.json'))
+    try:return dashboard(path)
+    except (ValueError,KeyError,TypeError,OSError):
+        raise HTTPException(503,'Research artifact invalid or incompatible; no scores available')
+
 @app.get("/api/config", dependencies=[Depends(authorize)])
 def config():
     llm = configured_llm()

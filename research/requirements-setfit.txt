@@ -1,0 +1,10 @@
+# Isolated Python 3.13 CPU environment; existing CPU Torch is retained.
+torch==2.6.0+cpu
+setfit==1.1.3
+sentence-transformers==3.4.1
+transformers==4.48.3
+datasets==3.3.2
+evaluate==0.4.3
+accelerate==1.4.0
+scikit-learn==1.6.1
+pyarrow==19.0.1

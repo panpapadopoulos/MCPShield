@@ -10,6 +10,7 @@ WORKDIR /app
 COPY requirements*.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY shield/ ./shield/
+COPY research/ ./research/
 COPY scripts/ ./scripts/
 COPY data/provenance.json ./data/provenance.json
 COPY data/authored_scenarios.json data/coverage-manifest.json ./data/
